@@ -1,3 +1,5 @@
+using DeveloperStore.Application.Common.Interfaces;
+using DeveloperStore.Application.Events;
 using DeveloperStore.Domain.Entities;
 using DeveloperStore.Domain.Interfaces;
 using DeveloperStore.Domain.ValueObjects;
@@ -8,10 +10,12 @@ namespace DeveloperStore.Application.Sales.Commands.CreateSale;
 public sealed class CreateSaleCommandHandler : IRequestHandler<CreateSaleCommand, Guid>
 {
     private readonly ISaleRepository _repository;
+    private readonly IEventPublisher _eventPublisher;
 
-    public CreateSaleCommandHandler(ISaleRepository repository)
+    public CreateSaleCommandHandler(ISaleRepository repository, IEventPublisher eventPublisher)
     {
         _repository = repository;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<Guid> Handle(CreateSaleCommand request, CancellationToken cancellationToken)
@@ -31,6 +35,16 @@ public sealed class CreateSaleCommandHandler : IRequestHandler<CreateSaleCommand
 
         await _repository.AddAsync(sale, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
+
+        await _eventPublisher.PublishAsync(new SaleCreated(
+            sale.Id,
+            sale.SaleNumber,
+            sale.Customer.Id,
+            sale.Customer.Name,
+            sale.Branch.Id,
+            sale.Branch.Name,
+            sale.TotalAmount,
+            sale.CreatedAt), cancellationToken);
 
         return sale.Id;
     }

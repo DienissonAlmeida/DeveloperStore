@@ -68,4 +68,13 @@ public class Sale : BaseEntity
         IsCancelled = true;
         SetUpdatedAt();
     }
+
+    public void CancelItem(Guid itemId)
+    {
+        var item = _items.FirstOrDefault(i => i.Id == itemId)
+            ?? throw new InvalidOperationException($"Item {itemId} not found in sale {Id}.");
+
+        item.Cancel();
+        SetUpdatedAt();
+    }
 }

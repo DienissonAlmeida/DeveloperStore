@@ -1,3 +1,4 @@
+using DeveloperStore.Application.Common.Interfaces;
 using DeveloperStore.Application.Sales.Commands.CreateSale;
 using DeveloperStore.Application.Sales.Commands.UpdateSale;
 using DeveloperStore.Domain.Interfaces;
@@ -10,12 +11,14 @@ namespace DeveloperStore.UnitTests.Sales.Commands.UpdateSale;
 public class UpdateSaleCommandHandlerUnitTests
 {
     private readonly Mock<ISaleRepository> _repositoryMock;
+    private readonly Mock<IEventPublisher> _eventPublisherMock;
     private readonly UpdateSaleCommandHandler _handler;
 
     public UpdateSaleCommandHandlerUnitTests()
     {
         _repositoryMock = new Mock<ISaleRepository>();
-        _handler = new UpdateSaleCommandHandler(_repositoryMock.Object);
+        _eventPublisherMock = new Mock<IEventPublisher>();
+        _handler = new UpdateSaleCommandHandler(_repositoryMock.Object, _eventPublisherMock.Object);
     }
 
     [Fact]

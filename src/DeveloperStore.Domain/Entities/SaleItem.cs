@@ -9,6 +9,7 @@ public class SaleItem : BaseEntity
     public int Quantity { get; private set; }
     public decimal UnitPrice { get; private set; }
     public decimal Discount { get; private set; }
+    public bool IsCancelled { get; private set; }
     public decimal TotalAmount => Quantity * UnitPrice * (1 - Discount);
 
     private SaleItem() { }
@@ -32,5 +33,11 @@ public class SaleItem : BaseEntity
             UnitPrice = unitPrice,
             Discount = discount
         };
+    }
+
+    public void Cancel()
+    {
+        IsCancelled = true;
+        SetUpdatedAt();
     }
 }
