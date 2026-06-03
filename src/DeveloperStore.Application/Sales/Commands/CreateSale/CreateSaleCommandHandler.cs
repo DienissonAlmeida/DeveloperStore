@@ -35,6 +35,17 @@ public sealed class CreateSaleCommandHandler : IRequestHandler<CreateSaleCommand
         return sale.Id;
     }
 
-    private static decimal CalculateDiscount(int quantity) =>
-        quantity >= 4 ? 0.10m : 0m;
+    private static decimal CalculateDiscount(int quantity)
+    {
+        if (quantity > 20)
+            throw new InvalidOperationException("Cannot sell more than 20 identical items.");
+
+        if (quantity >= 10)
+            return 0.20m;
+
+        if (quantity >= 4)
+            return 0.10m;
+
+        return 0m;
+    }
 }

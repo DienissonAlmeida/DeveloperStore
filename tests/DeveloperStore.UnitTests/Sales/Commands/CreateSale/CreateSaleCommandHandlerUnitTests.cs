@@ -63,6 +63,60 @@ public class CreateSaleCommandHandlerUnitTests
         persisted.TotalAmount.Should().Be(360m);
     }
 
+    [Fact]
+    public async Task Handle_ItemWithQuantityBetweenTenAndTwenty_AppliesTwentyPercentDiscount()
+    {
+        // Arrange
+        // qty=10 (>=10, <=20) → 20% discount → total = 10 * 100 * 0.8 = 800
+        var command = BuildCommand(quantity: 10);
+        Sale? persisted = null;
+        _repositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Callback<Sale, CancellationToken>((sale, _) => persisted = sale)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        persisted!.Items[0].Discount.Should().Be(0.20m);
+        persisted.TotalAmount.Should().Be(800m);
+    }
+
+    [Fact]
+    public async Task Handle_ItemWithQuantityAboveTwenty_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var command = BuildCommand(quantity: 21);
+
+        // Act
+        var act = () => _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*20*");
+    }
+
+    [Fact]
+    public async Task Handle_ItemWithQuantityBelowFour_AppliesNoDiscount()
+    {
+        // Arrange
+        // qty=3 (<4) → no discount → total = 3 * 100 = 300
+        var command = BuildCommand(quantity: 3);
+        Sale? persisted = null;
+        _repositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Callback<Sale, CancellationToken>((sale, _) => persisted = sale)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        persisted!.Items[0].Discount.Should().Be(0m);
+        persisted.TotalAmount.Should().Be(300m);
+    }
+
     // ──────────────────────────────────────────────────────────────────────────
 
     private static CreateSaleCommand BuildCommand(string saleNumber = "SALE-001", int quantity = 2) =>
