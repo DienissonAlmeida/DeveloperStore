@@ -1,0 +1,11 @@
+**/.vs
+**/.vscode
+**/.idea
+**/bin
+**/obj
+**/logs
+**/*.user
+README.md
+Dockerfile
+docker-compose.yml
+tests/
