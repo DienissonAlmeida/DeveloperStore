@@ -28,7 +28,15 @@ public class SaleRepository : ISaleRepository
         => await _context.Sales.AddAsync(entity, cancellationToken);
 
     public void Update(Sale entity)
-        => _context.Sales.Update(entity);
+    {
+        var existingItems = _context.SaleItems
+            .Where(i => i.SaleId == entity.Id)
+            .ToList();
+
+        _context.SaleItems.RemoveRange(existingItems);
+        _context.SaleItems.AddRange(entity.Items);
+        _context.Entry(entity).State = EntityState.Modified;
+    }
 
     public void Remove(Sale entity)
         => _context.Sales.Remove(entity);

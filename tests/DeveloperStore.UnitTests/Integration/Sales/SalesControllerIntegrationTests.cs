@@ -4,6 +4,8 @@ using DeveloperStore.Application.Events;
 using DeveloperStore.Application.Sales.Commands.CreateSale;
 using DeveloperStore.Application.Sales.Commands.UpdateSale;
 using DeveloperStore.Application.Sales.DTOs;
+using DeveloperStore.Domain.Entities;
+using DeveloperStore.Domain.ValueObjects;
 using DeveloperStore.UnitTests.Integration.Common;
 using FluentAssertions;
 using MassTransit.Testing;
@@ -47,44 +49,57 @@ public class SalesControllerIntegrationTests : IClassFixture<SalesWebApplication
         sale.Items[0].Quantity.Should().Be(2);
         sale.Items[0].UnitPrice.Should().Be(100m);
 
-        // Assert — Event
+        // Assert — Event (filter by SaleId to isolate this test from the shared harness)
         var harness = _factory.GetTestHarness();
-        (await harness.Published.Any<SaleCreated>()).Should().BeTrue();
-        (await harness.Consumed.Any<SaleCreated>()).Should().BeTrue();
+        (await harness.Published.Any<SaleCreated>(x => x.Context.Message.SaleId == body.Id)).Should().BeTrue();
+        (await harness.Consumed.Any<SaleCreated>(x => x.Context.Message.SaleId == body.Id)).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Get_GetSaleById_ReturnsOkWithCorrectData()
+    public async Task Get_GetSaleById_ReturnsOkWithCorrectDataAndNoEventsAreConsumed()
     {
-        // Arrange — create a sale first via the API
-        var created = await _client.PostAsJsonAsync("/api/sales", BuildCreateCommand("SALE-INT-002"));
-        var body = await created.Content.ReadFromJsonAsync<CreateSaleResponse>();
+        // Arrange — seed directly via context, bypassing the API handler
+        var seed = BuildSale("SALE-INT-002");
+        var db = await _factory.GetDbContextAsync();
+        await db.Sales.AddAsync(seed);
+        await db.SaveChangesAsync();
 
         // Act
-        var response = await _client.GetAsync($"/api/sales/{body!.Id}");
+        var response = await _client.GetAsync($"/api/sales/{seed.Id}");
 
         // Assert — HTTP
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var sale = await response.Content.ReadFromJsonAsync<SaleDto>();
 
         sale.Should().NotBeNull();
-        sale!.Id.Should().Be(body.Id);
+        sale!.Id.Should().Be(seed.Id);
         sale.SaleNumber.Should().Be("SALE-INT-002");
         sale.Items.Should().HaveCount(1);
         sale.TotalAmount.Should().Be(200m); // qty=2, price=100, discount=0 (qty<4)
+
+        // Assert — Event (GET is read-only: no events should be published or consumed for this sale)
+        var harness = _factory.GetTestHarness();
+        harness.Consumed.Select<SaleCreated>(x => x.Context.Message.SaleId == seed.Id)
+            .Should().BeEmpty();
+        harness.Consumed.Select<SaleModified>(x => x.Context.Message.SaleId == seed.Id)
+            .Should().BeEmpty();
+        harness.Consumed.Select<SaleCancelled>(x => x.Context.Message.SaleId == seed.Id)
+            .Should().BeEmpty();
     }
 
     [Fact]
     public async Task Patch_UpdateSale_ReturnsOkDatabaseReflectsChangesAndSaleModifiedEventIsConsumed()
     {
-        // Arrange — create then update
-        var created = await _client.PostAsJsonAsync("/api/sales", BuildCreateCommand("SALE-INT-003"));
-        var body = await created.Content.ReadFromJsonAsync<CreateSaleResponse>();
+        // Arrange — seed directly via context
+        var seed = BuildSale("SALE-INT-003");
+        var db = await _factory.GetDbContextAsync();
+        await db.Sales.AddAsync(seed);
+        await db.SaveChangesAsync();
 
-        var updateCommand = BuildUpdateCommand(body!.Id, "SALE-INT-003-UPDATED");
+        var updateCommand = BuildUpdateCommand(seed.Id, "SALE-INT-003-UPDATED");
 
         // Act
-        var response = await _client.PatchAsJsonAsync($"/api/sales/{body.Id}", updateCommand);
+        var response = await _client.PatchAsJsonAsync($"/api/sales/{seed.Id}", updateCommand);
 
         // Assert — HTTP
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -92,46 +107,65 @@ public class SalesControllerIntegrationTests : IClassFixture<SalesWebApplication
         updated!.SaleNumber.Should().Be("SALE-INT-003-UPDATED");
 
         // Assert — Database
-        var db = await _factory.GetDbContextAsync();
-        var sale = await db.Sales.FirstOrDefaultAsync(s => s.Id == body.Id);
+        var freshDb = await _factory.GetDbContextAsync();
+        var sale = await freshDb.Sales.FirstOrDefaultAsync(s => s.Id == seed.Id);
 
         sale.Should().NotBeNull();
         sale!.SaleNumber.Should().Be("SALE-INT-003-UPDATED");
         sale.UpdatedAt.Should().NotBeNull();
 
-        // Assert — Event
+        // Assert — Event (filter by SaleId to isolate this test from the shared harness)
         var harness = _factory.GetTestHarness();
-        (await harness.Published.Any<SaleModified>()).Should().BeTrue();
-        (await harness.Consumed.Any<SaleModified>()).Should().BeTrue();
+        (await harness.Published.Any<SaleModified>(x => x.Context.Message.SaleId == seed.Id)).Should().BeTrue();
+        (await harness.Consumed.Any<SaleModified>(x => x.Context.Message.SaleId == seed.Id)).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Delete_DeleteSale_ReturnsNoContentSaleIsRemovedFromDatabaseAndSaleCancelledEventIsConsumed()
+    public async Task Delete_DeleteSale_ReturnsNoContentSaleIsRemovedFromDatabaseAndCancelledEventsAreConsumed()
     {
-        // Arrange — create a sale to delete
-        var created = await _client.PostAsJsonAsync("/api/sales", BuildCreateCommand("SALE-INT-004"));
-        var body = await created.Content.ReadFromJsonAsync<CreateSaleResponse>();
+        // Arrange — seed directly via context
+        var seed = BuildSale("SALE-INT-004");
+        var db = await _factory.GetDbContextAsync();
+        await db.Sales.AddAsync(seed);
+        await db.SaveChangesAsync();
 
         // Act
-        var response = await _client.DeleteAsync($"/api/sales/{body!.Id}");
+        var response = await _client.DeleteAsync($"/api/sales/{seed.Id}");
 
         // Assert — HTTP
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // Assert — Database
-        var db = await _factory.GetDbContextAsync();
-        var sale = await db.Sales.FirstOrDefaultAsync(s => s.Id == body.Id);
+        var freshDb = await _factory.GetDbContextAsync();
+        var sale = await freshDb.Sales.FirstOrDefaultAsync(s => s.Id == seed.Id);
         sale.Should().BeNull();
 
-        // Assert — Events (ItemCancelled per item + SaleCancelled)
+        // Assert — Events (filter by SaleId to distinguish between multiple events of the same type)
         var harness = _factory.GetTestHarness();
-        (await harness.Published.Any<ItemCancelled>()).Should().BeTrue();
-        (await harness.Published.Any<SaleCancelled>()).Should().BeTrue();
-        (await harness.Consumed.Any<ItemCancelled>()).Should().BeTrue();
-        (await harness.Consumed.Any<SaleCancelled>()).Should().BeTrue();
+        (await harness.Published.Any<ItemCancelled>(x => x.Context.Message.SaleId == seed.Id)).Should().BeTrue();
+        (await harness.Published.Any<SaleCancelled>(x => x.Context.Message.SaleId == seed.Id)).Should().BeTrue();
+        (await harness.Consumed.Any<ItemCancelled>(x => x.Context.Message.SaleId == seed.Id)).Should().BeTrue();
+        (await harness.Consumed.Any<SaleCancelled>(x => x.Context.Message.SaleId == seed.Id)).Should().BeTrue();
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+
+    private static Sale BuildSale(string saleNumber)
+    {
+        var sale = Sale.Create(
+            saleNumber,
+            new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            new ExternalIdentity(Guid.NewGuid(), "John Doe"),
+            new ExternalIdentity(Guid.NewGuid(), "Main Branch"));
+
+        sale.AddItem(
+            new ExternalIdentity(Guid.NewGuid(), "Widget A"),
+            quantity: 2,
+            unitPrice: 100m,
+            discount: 0m);
+
+        return sale;
+    }
 
     private static CreateSaleCommand BuildCreateCommand(string saleNumber) =>
         new(
