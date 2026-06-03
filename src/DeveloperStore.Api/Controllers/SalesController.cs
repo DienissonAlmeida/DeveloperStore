@@ -1,4 +1,8 @@
 using DeveloperStore.Application.Sales.Commands.CreateSale;
+using DeveloperStore.Application.Sales.Commands.DeleteSale;
+using DeveloperStore.Application.Sales.Commands.UpdateSale;
+using DeveloperStore.Application.Sales.Queries.GetAllSales;
+using DeveloperStore.Application.Sales.Queries.GetSaleById;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,12 +19,46 @@ public class SalesController : ControllerBase
         _mediator = mediator;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    {
+        var sales = await _mediator.Send(new GetAllSalesQuery(), cancellationToken);
+        return Ok(sales);
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var sale = await _mediator.Send(new GetSaleByIdQuery(id), cancellationToken);
+        return sale is null ? NotFound() : Ok(sale);
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(
         [FromBody] CreateSaleCommand command,
         CancellationToken cancellationToken)
     {
         var id = await _mediator.Send(command, cancellationToken);
-        return CreatedAtAction(nameof(Create), new { id }, new { id });
+        return CreatedAtAction(nameof(GetById), new { id }, new { id });
+    }
+
+    [HttpPatch("{id:guid}")]
+    public async Task<IActionResult> Update(
+        Guid id,
+        [FromBody] UpdateSaleCommand command,
+        CancellationToken cancellationToken)
+    {
+        if (id != command.Id)
+            return BadRequest("Route id does not match body id.");
+
+        var result = await _mediator.Send(command, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
+    {
+        var deleted = await _mediator.Send(new DeleteSaleCommand(id), cancellationToken);
+        return deleted ? NoContent() : NotFound();
     }
 }

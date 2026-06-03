@@ -41,6 +41,28 @@ public class Sale : BaseEntity
         SetUpdatedAt();
     }
 
+    public void Update(
+        string saleNumber,
+        DateTime saleDate,
+        ExternalIdentity customer,
+        ExternalIdentity branch)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(saleNumber);
+
+        SaleNumber = saleNumber;
+        SaleDate = saleDate;
+        Customer = customer;
+        Branch = branch;
+        SetUpdatedAt();
+    }
+
+    public void ReplaceItems(IEnumerable<(ExternalIdentity Product, int Quantity, decimal UnitPrice, decimal Discount)> items)
+    {
+        _items.Clear();
+        foreach (var (product, quantity, unitPrice, discount) in items)
+            AddItem(product, quantity, unitPrice, discount);
+    }
+
     public void Cancel()
     {
         IsCancelled = true;
