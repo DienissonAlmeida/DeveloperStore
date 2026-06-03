@@ -1,3 +1,4 @@
+using DeveloperStore.Application.Common.Interfaces;
 using DeveloperStore.Application.Sales.Commands.DeleteSale;
 using DeveloperStore.Domain.Entities;
 using DeveloperStore.Domain.Interfaces;
@@ -10,19 +11,21 @@ namespace DeveloperStore.UnitTests.Sales.Commands.DeleteSale;
 public class DeleteSaleCommandHandlerUnitTests
 {
     private readonly Mock<ISaleRepository> _repositoryMock;
+    private readonly Mock<IEventPublisher> _eventPublisherMock;
     private readonly DeleteSaleCommandHandler _handler;
 
     public DeleteSaleCommandHandlerUnitTests()
     {
         _repositoryMock = new Mock<ISaleRepository>();
-        _handler = new DeleteSaleCommandHandler(_repositoryMock.Object);
+        _eventPublisherMock = new Mock<IEventPublisher>();
+        _handler = new DeleteSaleCommandHandler(_repositoryMock.Object, _eventPublisherMock.Object);
     }
 
     [Fact]
-    public async Task Handle_SaleFound_RemovesAndReturnsTrue()
+    public async Task Handle_SaleFound_RemovesPublishesEventsAndReturnsTrue()
     {
         // Arrange
-        var sale = SaleBuilder.Build();
+        var sale = SaleBuilder.Build(); // has 1 item
         _repositoryMock
             .Setup(r => r.GetByIdAsync(sale.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(sale);
@@ -34,6 +37,10 @@ public class DeleteSaleCommandHandlerUnitTests
         result.Should().BeTrue();
         _repositoryMock.Verify(r => r.Remove(sale), Times.Once);
         _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        // 1 ItemCancelled + 1 SaleCancelled
+        _eventPublisherMock.Verify(
+            p => p.PublishAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(sale.Items.Count + 1));
     }
 
     [Fact]
@@ -51,5 +58,8 @@ public class DeleteSaleCommandHandlerUnitTests
         result.Should().BeFalse();
         _repositoryMock.Verify(r => r.Remove(It.IsAny<Sale>()), Times.Never);
         _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        _eventPublisherMock.Verify(
+            p => p.PublishAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

@@ -63,9 +63,6 @@ namespace DeveloperStore.Infrastructure.Migrations
                         .HasPrecision(5, 4)
                         .HasColumnType("numeric(5,4)");
 
-                    b.Property<bool>("IsCancelled")
-                        .HasColumnType("boolean");
-
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
@@ -105,7 +102,7 @@ namespace DeveloperStore.Infrastructure.Migrations
 
                             b1.HasKey("SaleId");
 
-                            b1.ToTable("Sales");
+                            b1.ToTable("Sales", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("SaleId");
@@ -128,7 +125,7 @@ namespace DeveloperStore.Infrastructure.Migrations
 
                             b1.HasKey("SaleId");
 
-                            b1.ToTable("Sales");
+                            b1.ToTable("Sales", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("SaleId");
@@ -166,7 +163,7 @@ namespace DeveloperStore.Infrastructure.Migrations
 
                             b1.HasKey("SaleItemId");
 
-                            b1.ToTable("SaleItems");
+                            b1.ToTable("SaleItems", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("SaleItemId");

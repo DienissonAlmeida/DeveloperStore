@@ -1,5 +1,3 @@
-using DeveloperStore.Application.Sales.Commands.CancelSale;
-using DeveloperStore.Application.Sales.Commands.CancelSaleItem;
 using DeveloperStore.Application.Sales.Commands.CreateSale;
 using DeveloperStore.Application.Sales.Commands.DeleteSale;
 using DeveloperStore.Application.Sales.Commands.UpdateSale;
@@ -64,17 +62,4 @@ public class SalesController : ControllerBase
         return deleted ? NoContent() : NotFound();
     }
 
-    [HttpPatch("{id:guid}/cancel")]
-    public async Task<IActionResult> Cancel(Guid id, CancellationToken cancellationToken)
-    {
-        var cancelled = await _mediator.Send(new CancelSaleCommand(id), cancellationToken);
-        return cancelled ? NoContent() : NotFound();
-    }
-
-    [HttpPatch("{id:guid}/items/{itemId:guid}/cancel")]
-    public async Task<IActionResult> CancelItem(Guid id, Guid itemId, CancellationToken cancellationToken)
-    {
-        var cancelled = await _mediator.Send(new CancelSaleItemCommand(id, itemId), cancellationToken);
-        return cancelled ? NoContent() : NotFound();
-    }
 }
