@@ -35,12 +35,8 @@ public static class DependencyInjection
 
             x.UsingRabbitMq((context, cfg) =>
             {
-                cfg.Host(configuration["RabbitMq:Host"] ?? "localhost", h =>
-                {
-                    h.Username(configuration["RabbitMq:Username"] ?? "guest");
-                    h.Password(configuration["RabbitMq:Password"] ?? "guest");
-                });
-
+                var uri = configuration["RabbitMq:ConnectionString"] ?? "amqp://guest:guest@localhost";
+                cfg.Host(new Uri(uri));
                 cfg.ConfigureEndpoints(context, new KebabCaseEndpointNameFormatter("developerstore", false));
             });
         });

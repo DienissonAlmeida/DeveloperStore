@@ -47,9 +47,7 @@ services:
       - Jwt__Audience=DeveloperStore
       - Jwt__ExpiresInMinutes=60
       - ConnectionStrings__DefaultConnection=Host=postgres;Database=developerstore;Username=postgres;Password=postgres
-      - RabbitMq__Host=rabbitmq
-      - RabbitMq__Username=guest
-      - RabbitMq__Password=guest
+      - RabbitMq__ConnectionString=amqp://guest:guest@rabbitmq
     volumes:
       - ./logs:/app/logs
     depends_on:
