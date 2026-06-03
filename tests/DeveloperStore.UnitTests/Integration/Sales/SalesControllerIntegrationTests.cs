@@ -1,10 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
+using DeveloperStore.Application.Events;
 using DeveloperStore.Application.Sales.Commands.CreateSale;
 using DeveloperStore.Application.Sales.Commands.UpdateSale;
 using DeveloperStore.Application.Sales.DTOs;
 using DeveloperStore.UnitTests.Integration.Common;
 using FluentAssertions;
+using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 
 namespace DeveloperStore.UnitTests.Integration.Sales;
@@ -21,7 +23,7 @@ public class SalesControllerIntegrationTests : IClassFixture<SalesWebApplication
     }
 
     [Fact]
-    public async Task Post_CreateSale_ReturnsCreatedAndSaleIsSavedInDatabase()
+    public async Task Post_CreateSale_ReturnsCreatedSaleIsSavedInDatabaseAndSaleCreatedEventIsConsumed()
     {
         // Arrange
         var command = BuildCreateCommand("SALE-INT-001");
@@ -44,6 +46,11 @@ public class SalesControllerIntegrationTests : IClassFixture<SalesWebApplication
         sale.Items.Should().HaveCount(1);
         sale.Items[0].Quantity.Should().Be(2);
         sale.Items[0].UnitPrice.Should().Be(100m);
+
+        // Assert — Event
+        var harness = _factory.GetTestHarness();
+        (await harness.Published.Any<SaleCreated>()).Should().BeTrue();
+        (await harness.Consumed.Any<SaleCreated>()).Should().BeTrue();
     }
 
     [Fact]
@@ -68,7 +75,7 @@ public class SalesControllerIntegrationTests : IClassFixture<SalesWebApplication
     }
 
     [Fact]
-    public async Task Patch_UpdateSale_ReturnsOkAndDatabaseReflectsChanges()
+    public async Task Patch_UpdateSale_ReturnsOkDatabaseReflectsChangesAndSaleModifiedEventIsConsumed()
     {
         // Arrange — create then update
         var created = await _client.PostAsJsonAsync("/api/sales", BuildCreateCommand("SALE-INT-003"));
@@ -91,10 +98,15 @@ public class SalesControllerIntegrationTests : IClassFixture<SalesWebApplication
         sale.Should().NotBeNull();
         sale!.SaleNumber.Should().Be("SALE-INT-003-UPDATED");
         sale.UpdatedAt.Should().NotBeNull();
+
+        // Assert — Event
+        var harness = _factory.GetTestHarness();
+        (await harness.Published.Any<SaleModified>()).Should().BeTrue();
+        (await harness.Consumed.Any<SaleModified>()).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Delete_DeleteSale_ReturnsNoContentAndSaleIsRemovedFromDatabase()
+    public async Task Delete_DeleteSale_ReturnsNoContentSaleIsRemovedFromDatabaseAndSaleCancelledEventIsConsumed()
     {
         // Arrange — create a sale to delete
         var created = await _client.PostAsJsonAsync("/api/sales", BuildCreateCommand("SALE-INT-004"));
@@ -109,8 +121,14 @@ public class SalesControllerIntegrationTests : IClassFixture<SalesWebApplication
         // Assert — Database
         var db = await _factory.GetDbContextAsync();
         var sale = await db.Sales.FirstOrDefaultAsync(s => s.Id == body.Id);
-
         sale.Should().BeNull();
+
+        // Assert — Events (ItemCancelled per item + SaleCancelled)
+        var harness = _factory.GetTestHarness();
+        (await harness.Published.Any<ItemCancelled>()).Should().BeTrue();
+        (await harness.Published.Any<SaleCancelled>()).Should().BeTrue();
+        (await harness.Consumed.Any<ItemCancelled>()).Should().BeTrue();
+        (await harness.Consumed.Any<SaleCancelled>()).Should().BeTrue();
     }
 
     // ──────────────────────────────────────────────────────────────────────────
