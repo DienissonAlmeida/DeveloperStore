@@ -5,4 +5,7 @@
     <Project Path="src/DeveloperStore.Domain/DeveloperStore.Domain.csproj" />
     <Project Path="src/DeveloperStore.Infrastructure/DeveloperStore.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DeveloperStore.UnitTests/DeveloperStore.UnitTests.csproj" />
+  </Folder>
 </Solution>
