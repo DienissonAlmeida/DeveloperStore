@@ -1,0 +1,16 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: developerstore-api
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - Jwt__Key=CHANGE_ME_TO_A_STRONG_SECRET_KEY_AT_LEAST_32_CHARS
+      - Jwt__Issuer=DeveloperStore
+      - Jwt__Audience=DeveloperStore
+      - Jwt__ExpiresInMinutes=60
+    volumes:
+      - ./logs:/app/logs
