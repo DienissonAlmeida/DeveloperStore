@@ -1,37 +1,43 @@
 using DeveloperStore.Domain.Entities;
 using DeveloperStore.Domain.Interfaces;
+using DeveloperStore.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace DeveloperStore.Infrastructure.Repositories;
 
 public class SaleRepository : ISaleRepository
 {
-    private static readonly Dictionary<Guid, Sale> _store = [];
+    private readonly AppDbContext _context;
 
-    public Task<Sale?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
-        => Task.FromResult(_store.GetValueOrDefault(id));
-
-    public Task<IEnumerable<Sale>> GetAllAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(_store.Values.AsEnumerable());
-
-    public Task AddAsync(Sale entity, CancellationToken cancellationToken = default)
+    public SaleRepository(AppDbContext context)
     {
-        _store[entity.Id] = entity;
-        return Task.CompletedTask;
+        _context = context;
     }
+
+    public async Task<Sale?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => await _context.Sales
+            .Include(s => s.Items)
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+
+    public async Task<IEnumerable<Sale>> GetAllAsync(CancellationToken cancellationToken = default)
+        => await _context.Sales
+            .Include(s => s.Items)
+            .ToListAsync(cancellationToken);
+
+    public async Task AddAsync(Sale entity, CancellationToken cancellationToken = default)
+        => await _context.Sales.AddAsync(entity, cancellationToken);
 
     public void Update(Sale entity)
-    {
-        _store[entity.Id] = entity;
-    }
+        => _context.Sales.Update(entity);
 
     public void Remove(Sale entity)
-    {
-        _store.Remove(entity.Id);
-    }
+        => _context.Sales.Remove(entity);
 
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(1);
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        => await _context.SaveChangesAsync(cancellationToken);
 
-    public Task<Sale?> GetBySaleNumberAsync(string saleNumber, CancellationToken cancellationToken = default)
-        => Task.FromResult(_store.Values.FirstOrDefault(s => s.SaleNumber == saleNumber));
+    public async Task<Sale?> GetBySaleNumberAsync(string saleNumber, CancellationToken cancellationToken = default)
+        => await _context.Sales
+            .Include(s => s.Items)
+            .FirstOrDefaultAsync(s => s.SaleNumber == saleNumber, cancellationToken);
 }

@@ -1,4 +1,21 @@
 services:
+  postgres:
+    image: postgres:16
+    container_name: developerstore-postgres
+    environment:
+      POSTGRES_DB: developerstore
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   api:
     build:
       context: .
@@ -12,5 +29,12 @@ services:
       - Jwt__Issuer=DeveloperStore
       - Jwt__Audience=DeveloperStore
       - Jwt__ExpiresInMinutes=60
+      - ConnectionStrings__DefaultConnection=Host=postgres;Database=developerstore;Username=postgres;Password=postgres
     volumes:
       - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
