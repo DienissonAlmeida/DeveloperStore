@@ -19,7 +19,35 @@ public class UpdateSaleCommandHandlerUnitTests
     }
 
     [Fact]
-    public async Task Handle_SaleNotFound_ReturnsNull()
+    public async Task Handle_SaleFound_UpdatesAndReturnsDto()
+    {
+        // Arrange
+        var sale = SaleBuilder.Build();
+        var newCustomerId = Guid.NewGuid();
+        var newBranchId = Guid.NewGuid();
+
+        _repositoryMock
+            .Setup(r => r.GetByIdAsync(sale.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(sale);
+
+        var command = BuildCommand(sale.Id, saleNumber: "SALE-UPDATED",
+            customerId: newCustomerId, branchId: newBranchId, itemCount: 3);
+
+        // Act
+        var result = await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.SaleNumber.Should().Be("SALE-UPDATED");
+        result.CustomerId.Should().Be(newCustomerId);
+        result.BranchId.Should().Be(newBranchId);
+        result.Items.Should().HaveCount(3);
+        _repositoryMock.Verify(r => r.Update(sale), Times.Once);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Handle_SaleNotFound_ReturnsNullAndDoesNotPersist()
     {
         // Arrange
         _repositoryMock
@@ -31,98 +59,8 @@ public class UpdateSaleCommandHandlerUnitTests
 
         // Assert
         result.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task Handle_SaleNotFound_NeverCallsUpdateOrSave()
-    {
-        // Arrange
-        _repositoryMock
-            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((Domain.Entities.Sale?)null);
-
-        // Act
-        await _handler.Handle(BuildCommand(Guid.NewGuid()), CancellationToken.None);
-
-        // Assert
         _repositoryMock.Verify(r => r.Update(It.IsAny<Domain.Entities.Sale>()), Times.Never);
         _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Handle_SaleFound_ReturnsSaleDtoWithUpdatedSaleNumber()
-    {
-        // Arrange
-        var sale = SaleBuilder.Build();
-        _repositoryMock
-            .Setup(r => r.GetByIdAsync(sale.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(sale);
-
-        var command = BuildCommand(sale.Id, saleNumber: "SALE-UPDATED");
-
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result.Should().NotBeNull();
-        result!.SaleNumber.Should().Be("SALE-UPDATED");
-    }
-
-    [Fact]
-    public async Task Handle_SaleFound_ReplacesItemsCorrectly()
-    {
-        // Arrange
-        var sale = SaleBuilder.Build(); // starts with 1 item
-        _repositoryMock
-            .Setup(r => r.GetByIdAsync(sale.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(sale);
-
-        var command = BuildCommand(sale.Id, itemCount: 3);
-
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result!.Items.Should().HaveCount(3);
-    }
-
-    [Fact]
-    public async Task Handle_SaleFound_CallsUpdateAndSaveChangesOnce()
-    {
-        // Arrange
-        var sale = SaleBuilder.Build();
-        _repositoryMock
-            .Setup(r => r.GetByIdAsync(sale.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(sale);
-
-        // Act
-        await _handler.Handle(BuildCommand(sale.Id), CancellationToken.None);
-
-        // Assert
-        _repositoryMock.Verify(r => r.Update(sale), Times.Once);
-        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_SaleFound_UpdatesCustomerAndBranch()
-    {
-        // Arrange
-        var sale = SaleBuilder.Build();
-        var newCustomerId = Guid.NewGuid();
-        var newBranchId = Guid.NewGuid();
-
-        _repositoryMock
-            .Setup(r => r.GetByIdAsync(sale.Id, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(sale);
-
-        var command = BuildCommand(sale.Id, customerId: newCustomerId, branchId: newBranchId);
-
-        // Act
-        var result = await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        result!.CustomerId.Should().Be(newCustomerId);
-        result.BranchId.Should().Be(newBranchId);
     }
 
     // ──────────────────────────────────────────────────────────────────────────

@@ -18,109 +18,36 @@ public class CreateSaleCommandHandlerUnitTests
     }
 
     [Fact]
-    public async Task Handle_ValidCommand_ReturnsNewSaleId()
+    public async Task Handle_ValidCommand_CreatesSaleAndPersistsCorrectly()
     {
         // Arrange
-        var command = BuildCommand();
+        // qty=2 (<4) → no discount → total = 2 * 100 = 200
+        var command = BuildCommand(saleNumber: "SALE-001", quantity: 2);
+        Sale? persisted = null;
+        _repositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Callback<Sale, CancellationToken>((sale, _) => persisted = sale)
+            .Returns(Task.CompletedTask);
 
         // Act
         var result = await _handler.Handle(command, CancellationToken.None);
 
         // Assert
         result.Should().NotBe(Guid.Empty);
-    }
-
-    [Fact]
-    public async Task Handle_ValidCommand_CallsAddAsyncOnce()
-    {
-        // Arrange
-        var command = BuildCommand();
-
-        // Act
-        await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        _repositoryMock.Verify(
-            r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_ValidCommand_CallsSaveChangesAsyncOnce()
-    {
-        // Arrange
-        var command = BuildCommand();
-
-        // Act
-        await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        _repositoryMock.Verify(
-            r => r.SaveChangesAsync(It.IsAny<CancellationToken>()),
-            Times.Once);
-    }
-
-    [Fact]
-    public async Task Handle_ValidCommand_PersistsSaleWithCorrectSaleNumber()
-    {
-        // Arrange
-        var command = BuildCommand(saleNumber: "SALE-XYZ");
-        Sale? persisted = null;
-        _repositoryMock
-            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
-            .Callback<Sale, CancellationToken>((sale, _) => persisted = sale)
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
         persisted.Should().NotBeNull();
-        persisted!.SaleNumber.Should().Be("SALE-XYZ");
-    }
-
-    [Fact]
-    public async Task Handle_ValidCommand_PersistsSaleWithAllItems()
-    {
-        // Arrange
-        var command = BuildCommand();
-        Sale? persisted = null;
-        _repositoryMock
-            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
-            .Callback<Sale, CancellationToken>((sale, _) => persisted = sale)
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        persisted!.Items.Should().HaveCount(command.Items.Count);
-    }
-
-    [Fact]
-    public async Task Handle_ValidCommand_ComputesCorrectTotalAmount()
-    {
-        // Arrange
-        // qty=2 (<4) → no discount applied → 2 * 100 * 1.0 = 200
-        var command = BuildCommand();
-        Sale? persisted = null;
-        _repositoryMock
-            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
-            .Callback<Sale, CancellationToken>((sale, _) => persisted = sale)
-            .Returns(Task.CompletedTask);
-
-        // Act
-        await _handler.Handle(command, CancellationToken.None);
-
-        // Assert
-        persisted!.TotalAmount.Should().Be(200m);
+        persisted!.SaleNumber.Should().Be("SALE-001");
+        persisted.Items.Should().HaveCount(1);
+        persisted.Items[0].Discount.Should().Be(0m);
+        persisted.TotalAmount.Should().Be(200m);
+        _repositoryMock.Verify(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()), Times.Once);
+        _repositoryMock.Verify(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task Handle_ItemWithQuantityEqualOrAboveFour_AppliesTenPercentDiscount()
     {
         // Arrange
-        // qty=4, price=100 → discount forced to 10% → 4 * 100 * 0.9 = 360
+        // qty=4 (>=4) → 10% discount → total = 4 * 100 * 0.9 = 360
         var command = BuildCommand(quantity: 4);
         Sale? persisted = null;
         _repositoryMock
