@@ -1,11 +1,11 @@
 using DeveloperStore.Application.Sales.Queries.GetSaleById;
 using DeveloperStore.Domain.Entities;
 using DeveloperStore.Domain.Interfaces;
-using DeveloperStore.UnitTests.Common;
+using DeveloperStore.Tests.Unit.Common;
 using FluentAssertions;
 using Moq;
 
-namespace DeveloperStore.UnitTests.Sales.Queries.GetSaleById;
+namespace DeveloperStore.Tests.Unit.Sales.Queries.GetSaleById;
 
 public class GetSaleByIdQueryHandlerUnitTests
 {

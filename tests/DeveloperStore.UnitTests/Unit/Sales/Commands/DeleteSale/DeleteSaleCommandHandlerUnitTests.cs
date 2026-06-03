@@ -2,11 +2,11 @@ using DeveloperStore.Application.Common.Interfaces;
 using DeveloperStore.Application.Sales.Commands.DeleteSale;
 using DeveloperStore.Domain.Entities;
 using DeveloperStore.Domain.Interfaces;
-using DeveloperStore.UnitTests.Common;
+using DeveloperStore.Tests.Unit.Common;
 using FluentAssertions;
 using Moq;
 
-namespace DeveloperStore.UnitTests.Sales.Commands.DeleteSale;
+namespace DeveloperStore.Tests.Unit.Sales.Commands.DeleteSale;
 
 public class DeleteSaleCommandHandlerUnitTests
 {

@@ -5,7 +5,7 @@ using DeveloperStore.Domain.Interfaces;
 using FluentAssertions;
 using Moq;
 
-namespace DeveloperStore.UnitTests.Sales.Commands.CreateSale;
+namespace DeveloperStore.Tests.Unit.Sales.Commands.CreateSale;
 
 public class CreateSaleCommandHandlerUnitTests
 {

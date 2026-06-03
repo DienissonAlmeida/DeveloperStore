@@ -37,6 +37,15 @@ public static class DependencyInjection
             {
                 var uri = configuration["RabbitMq:ConnectionString"] ?? "amqp://guest:guest@localhost";
                 cfg.Host(new Uri(uri));
+
+                cfg.UseMessageRetry(r =>
+                    r.Incremental(retryLimit: 3,
+                        initialInterval: TimeSpan.FromSeconds(1),
+                        intervalIncrement: TimeSpan.FromSeconds(2)));
+
+                cfg.UseDelayedRedelivery(r =>
+                    r.Intervals(TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2), TimeSpan.FromMinutes(10)));
+
                 cfg.ConfigureEndpoints(context, new KebabCaseEndpointNameFormatter("developerstore", false));
             });
         });

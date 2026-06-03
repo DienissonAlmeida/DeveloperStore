@@ -6,12 +6,12 @@ using DeveloperStore.Application.Sales.Commands.UpdateSale;
 using DeveloperStore.Application.Sales.DTOs;
 using DeveloperStore.Domain.Entities;
 using DeveloperStore.Domain.ValueObjects;
-using DeveloperStore.UnitTests.Integration.Common;
+using DeveloperStore.Tests.Integration.Common;
 using FluentAssertions;
 using MassTransit.Testing;
 using Microsoft.EntityFrameworkCore;
 
-namespace DeveloperStore.UnitTests.Integration.Sales;
+namespace DeveloperStore.Tests.Integration.Sales;
 
 public class SalesControllerIntegrationTests : IClassFixture<SalesWebApplicationFactory>
 {

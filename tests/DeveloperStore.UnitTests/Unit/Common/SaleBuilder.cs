@@ -1,7 +1,7 @@
 using DeveloperStore.Domain.Entities;
 using DeveloperStore.Domain.ValueObjects;
 
-namespace DeveloperStore.UnitTests.Common;
+namespace DeveloperStore.Tests.Unit.Common;
 
 internal static class SaleBuilder
 {

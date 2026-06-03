@@ -2,11 +2,11 @@ using DeveloperStore.Application.Common.Interfaces;
 using DeveloperStore.Application.Sales.Commands.CreateSale;
 using DeveloperStore.Application.Sales.Commands.UpdateSale;
 using DeveloperStore.Domain.Interfaces;
-using DeveloperStore.UnitTests.Common;
+using DeveloperStore.Tests.Unit.Common;
 using FluentAssertions;
 using Moq;
 
-namespace DeveloperStore.UnitTests.Sales.Commands.UpdateSale;
+namespace DeveloperStore.Tests.Unit.Sales.Commands.UpdateSale;
 
 public class UpdateSaleCommandHandlerUnitTests
 {

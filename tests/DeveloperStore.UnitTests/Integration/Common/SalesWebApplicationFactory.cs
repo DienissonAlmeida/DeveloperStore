@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Testcontainers.PostgreSql;
 
-namespace DeveloperStore.UnitTests.Integration.Common;
+namespace DeveloperStore.Tests.Integration.Common;
 
 public class SalesWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {

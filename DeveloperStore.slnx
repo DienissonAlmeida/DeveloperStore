@@ -6,6 +6,6 @@
     <Project Path="src/DeveloperStore.Infrastructure/DeveloperStore.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/DeveloperStore.UnitTests/DeveloperStore.UnitTests.csproj" />
+    <Project Path="tests/DeveloperStore.UnitTests/DeveloperStore.Tests.csproj" />
   </Folder>
 </Solution>
