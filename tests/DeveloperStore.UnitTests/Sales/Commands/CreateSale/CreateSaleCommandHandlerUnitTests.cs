@@ -101,7 +101,7 @@ public class CreateSaleCommandHandlerUnitTests
     public async Task Handle_ValidCommand_ComputesCorrectTotalAmount()
     {
         // Arrange
-        // qty=2, price=100, discount=10% → item total = 180 → sale total = 180
+        // qty=2 (<4) → no discount applied → 2 * 100 * 1.0 = 200
         var command = BuildCommand();
         Sale? persisted = null;
         _repositoryMock
@@ -113,12 +113,32 @@ public class CreateSaleCommandHandlerUnitTests
         await _handler.Handle(command, CancellationToken.None);
 
         // Assert
-        persisted!.TotalAmount.Should().Be(180m);
+        persisted!.TotalAmount.Should().Be(200m);
+    }
+
+    [Fact]
+    public async Task Handle_ItemWithQuantityEqualOrAboveFour_AppliesTenPercentDiscount()
+    {
+        // Arrange
+        // qty=4, price=100 → discount forced to 10% → 4 * 100 * 0.9 = 360
+        var command = BuildCommand(quantity: 4);
+        Sale? persisted = null;
+        _repositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Sale>(), It.IsAny<CancellationToken>()))
+            .Callback<Sale, CancellationToken>((sale, _) => persisted = sale)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        await _handler.Handle(command, CancellationToken.None);
+
+        // Assert
+        persisted!.Items[0].Discount.Should().Be(0.10m);
+        persisted.TotalAmount.Should().Be(360m);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
 
-    private static CreateSaleCommand BuildCommand(string saleNumber = "SALE-001") =>
+    private static CreateSaleCommand BuildCommand(string saleNumber = "SALE-001", int quantity = 2) =>
         new(
             SaleNumber: saleNumber,
             SaleDate: new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
@@ -131,8 +151,8 @@ public class CreateSaleCommandHandlerUnitTests
                 new CreateSaleItemDto(
                     ProductId: Guid.NewGuid(),
                     ProductName: "Widget A",
-                    Quantity: 2,
+                    Quantity: quantity,
                     UnitPrice: 100m,
-                    Discount: 0.10m)
+                    Discount: 0m)
             ]);
 }

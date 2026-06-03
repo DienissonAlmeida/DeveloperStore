@@ -27,11 +27,14 @@ public sealed class CreateSaleCommandHandler : IRequestHandler<CreateSaleCommand
                 new ExternalIdentity(item.ProductId, item.ProductName),
                 item.Quantity,
                 item.UnitPrice,
-                item.Discount);
+                CalculateDiscount(item.Quantity));
 
         await _repository.AddAsync(sale, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
 
         return sale.Id;
     }
+
+    private static decimal CalculateDiscount(int quantity) =>
+        quantity >= 4 ? 0.10m : 0m;
 }
